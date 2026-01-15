@@ -1,0 +1,66 @@
+name: SENSEX Expiry Auto Downloader
+
+on:
+  schedule:
+    - cron: "0 3 * * 1-5"   # 08:30 IST
+  workflow_dispatch:
+
+jobs:
+  run-sensex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Debug Environment Variables (Safe)
+        env:
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+          ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP: ${{ secrets.ANGEL_TOTP }}
+        run: |
+          echo "ANGEL_API_KEY exists: ${{ secrets.ANGEL_API_KEY != '' }}"
+          echo "ANGEL_CLIENT_ID exists: ${{ secrets.ANGEL_CLIENT_ID != '' }}"
+          echo "ANGEL_PIN exists: ${{ secrets.ANGEL_PIN != '' }}"
+          echo "ANGEL_TOTP exists: ${{ secrets.ANGEL_TOTP != '' }}"
+          echo "TELEGRAM_BOT_TOKEN exists: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
+          echo "TELEGRAM_CHAT_ID exists: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
+          
+          # Show lengths (safely)
+          echo "ANGEL_TOTP length: ${#ANGEL_TOTP}"
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir logzero
+
+          
+      - name: 🔎 Verify logzero install
+        run: |
+          python - <<EOF
+          import logzero
+          print("logzero OK:", logzero.__version__)
+          EOF
+      
+
+      - name: 🚀 Run SENSEX expiry downloader
+        env:
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_ID: ${{ secrets.ANGEL_CLIENT_ID }}
+          ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP: ${{ secrets.ANGEL_TOTP }}
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python sensex_expiry_downloader.py
+          
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID")
